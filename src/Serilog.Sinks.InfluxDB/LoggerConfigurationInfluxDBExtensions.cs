@@ -13,19 +13,14 @@
 // limitations under the License.
 
 using System;
-using System.Collections.Generic;
-using System.Net;
 using Serilog.Configuration;
 using Serilog.Events;
-using Serilog.Formatting.Display;
-//using Serilog.Sinks.InfluxDB;
-using Serilog.Formatting;
 using Serilog.Sinks.InfluxDB;
 
 namespace Serilog
 {
     /// <summary>
-    /// Adds the WriteTo.Email() extension method to <see cref="LoggerConfiguration"/>.
+    /// Adds the WriteTo.InfluxDB() extension method to <see cref="LoggerConfiguration"/>.
     /// </summary>
     public static class LoggerConfigurationInfluxDBExtensions
     {
@@ -60,6 +55,9 @@ namespace Serilog
             return InfluxDB(loggerConfiguration, source,connectionInfo, restrictedToMinimumLevel, batchPostingLimit, period);
         }
 
+        /// <summary>
+        /// Adds the WriteTo.InfluxDB() extension method to <see cref="LoggerConfiguration"/>.
+        /// </summary>
         public static LoggerConfiguration InfluxDB(
             this LoggerSinkConfiguration loggerConfiguration,
             string source,
@@ -81,6 +79,9 @@ namespace Serilog
             return InfluxDB(loggerConfiguration, source, connectionInfo, restrictedToMinimumLevel, batchPostingLimit, period);
         }
 
+        /// <summary>
+        /// Adds the WriteTo.InfluxDB() extension method to <see cref="LoggerConfiguration"/>.
+        /// </summary>
         public static LoggerConfiguration InfluxDB(
             this LoggerSinkConfiguration loggerConfiguration,
             string source,
@@ -104,6 +105,9 @@ namespace Serilog
             return InfluxDB(loggerConfiguration, source, connectionInfo, restrictedToMinimumLevel, batchPostingLimit, period);
         }
 
+        /// <summary>
+        /// Adds the WriteTo.InfluxDB() extension method to <see cref="LoggerConfiguration"/>.
+        /// </summary>
         public static LoggerConfiguration InfluxDB(
             this LoggerSinkConfiguration loggerConfiguration,
             string source,

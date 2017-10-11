@@ -35,8 +35,14 @@ namespace Serilog.Sinks.InfluxDB
     {
         readonly string _source;
 
+        /// <summary>
+        /// Connection info used to connect to InfluxDB instance.
+        /// </summary>
         readonly InfluxDBConnectionInfo _connectionInfo;
 
+        /// <summary>
+        /// Client object used to connect to InfluxDB instance.
+        /// </summary>
         readonly InfluxDbClient _influxDbClient;
 
         /// <summary>
@@ -51,13 +57,12 @@ namespace Serilog.Sinks.InfluxDB
         public static readonly TimeSpan DefaultPeriod = TimeSpan.FromSeconds(30);
 
         /// <summary>
-        /// Construct a sink emailing with the specified details.
+        /// Construct a sink inserting into InfluxDB with the specified details.
         /// </summary>
-        /// <param name="connectionInfo">Connection information used to construct the SMTP client and mail messages.</param>
+        /// <param name="connectionInfo">Connection information used to construct InfluxDB client.</param>
+        /// <param name="source">Measurement name in the InfluxDB database.</param>
         /// <param name="batchSizeLimit">The maximum number of events to post in a single batch.</param>
         /// <param name="period">The time to wait between checking for event batches.</param>
-        /// <param name="textFormatter">Supplies culture-specific formatting information, or null.</param>
-        /// <param name="subjectLineFormatter">Supplies culture-specific formatting information, or null.</param>
         public InfluxDBSink(InfluxDBConnectionInfo connectionInfo, string source, int batchSizeLimit, TimeSpan period)
             : base(batchSizeLimit, period)
         {
@@ -126,6 +131,11 @@ namespace Serilog.Sinks.InfluxDB
 
             await _influxDbClient.Client.WriteAsync(points, _connectionInfo.DbName);
         }
+
+        /// <summary>
+        /// Initialize and return an InfluxDB client object.
+        /// </summary>
+        /// <returns></returns>
         private InfluxDbClient CreateInfluxDbClient()
         {
             return new InfluxDbClient(
@@ -134,6 +144,10 @@ namespace Serilog.Sinks.InfluxDB
                 _connectionInfo.Password,
                 InfluxDbVersion.Latest);
         }
+
+        /// <summary>
+        /// Create the log database in InfluxDB if it does not exists.
+        /// </summary>
         private void CreateDatabase()
         {
             var dbList = _influxDbClient.Database.GetDatabasesAsync().Result;
