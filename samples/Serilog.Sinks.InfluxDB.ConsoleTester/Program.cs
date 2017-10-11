@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SErilog.Sinks.InfluxDB.ConsoleTester
+namespace Serilog.Sinks.InfluxDB.ConsoleTester
 {
     class Program
     {
