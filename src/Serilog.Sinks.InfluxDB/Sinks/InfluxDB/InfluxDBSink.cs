@@ -12,22 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using InfluxData.Net.Common.Enums;
+using InfluxData.Net.InfluxDb;
+using InfluxData.Net.InfluxDb.Models;
+using Serilog.Events;
+using Serilog.Sinks.PeriodicBatching;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Mail;
-using System.Text;
-using System.Threading.Tasks;
-using Serilog.Debugging;
-using Serilog.Events;
-using Serilog.Formatting;
-using Serilog.Sinks.PeriodicBatching;
-using Serilog.Formatting.Display;
 using System.Linq;
-using InfluxData.Net.InfluxDb;
-using InfluxData.Net.Common.Enums;
-using InfluxData.Net.InfluxDb.Infrastructure;
-using InfluxData.Net.InfluxDb.Models;
+using System.Threading.Tasks;
 
 namespace Serilog.Sinks.InfluxDB
 {
@@ -108,7 +102,7 @@ namespace Serilog.Sinks.InfluxDB
                 var p = new Point();
 
                 p.Name = _source;
-                p.Fields = logEvent.Properties.ToDictionary(k => k.Key, v => (object)v.Value.ToString());
+                p.Fields = logEvent.Properties.ToDictionary(k => k.Key, v => (object)v.Value);
 
                 if (logEvent.Exception != null)
                 {
