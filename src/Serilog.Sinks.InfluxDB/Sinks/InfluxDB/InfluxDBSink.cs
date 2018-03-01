@@ -25,19 +25,19 @@ using System.Threading.Tasks;
 
 namespace Serilog.Sinks.InfluxDB
 {
-    class InfluxDBSink : PeriodicBatchingSink //InfluxDBSink
+    internal class InfluxDBSink : PeriodicBatchingSink //InfluxDBSink
     {
-        readonly string _source;
+        private readonly string _source;
 
         /// <summary>
         /// Connection info used to connect to InfluxDB instance.
         /// </summary>
-        readonly InfluxDBConnectionInfo _connectionInfo;
+        private readonly InfluxDBConnectionInfo _connectionInfo;
 
         /// <summary>
         /// Client object used to connect to InfluxDB instance.
         /// </summary>
-        readonly InfluxDbClient _influxDbClient;
+        private readonly InfluxDbClient _influxDbClient;
 
         /// <summary>
         /// A reasonable default for the number of events posted in
@@ -50,6 +50,7 @@ namespace Serilog.Sinks.InfluxDB
         /// </summary>
         public static readonly TimeSpan DefaultPeriod = TimeSpan.FromSeconds(30);
 
+        /// <inheritdoc />
         /// <summary>
         /// Construct a sink inserting into InfluxDB with the specified details.
         /// </summary>
@@ -67,11 +68,12 @@ namespace Serilog.Sinks.InfluxDB
             CreateDatabase();
         }
 
+        /// <inheritdoc />
         /// <summary>
         /// Emit a batch of log events, running asynchronously.
         /// </summary>
         /// <param name="events">The events to emit.</param>
-        /// <remarks>Override either <see cref="PeriodicBatchingSink.EmitBatch"/> or <see cref="PeriodicBatchingSink.EmitBatchAsync"/>,
+        /// <remarks>Override either <see cref="M:Serilog.Sinks.PeriodicBatching.PeriodicBatchingSink.EmitBatch(System.Collections.Generic.IEnumerable{Serilog.Events.LogEvent})" /> or <see cref="M:Serilog.Sinks.PeriodicBatching.PeriodicBatchingSink.EmitBatchAsync(System.Collections.Generic.IEnumerable{Serilog.Events.LogEvent})" />,
         /// not both.</remarks>
         protected override async Task EmitBatchAsync(IEnumerable<LogEvent> events)
         {
