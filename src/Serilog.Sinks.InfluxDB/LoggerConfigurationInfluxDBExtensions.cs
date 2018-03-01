@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
 using Serilog.Configuration;
 using Serilog.Events;
 using Serilog.Sinks.InfluxDB;
+using System;
 
 namespace Serilog
 {
@@ -24,8 +24,6 @@ namespace Serilog
     /// </summary>
     public static class LoggerConfigurationInfluxDBExtensions
     {
-        const string DefaultOutputTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level}] {Message} - {Properties}{NewLine}{Exception}{Properties}";
-
         public static LoggerConfiguration InfluxDB(
             this LoggerSinkConfiguration loggerConfiguration,
             string source,
@@ -38,8 +36,8 @@ namespace Serilog
             int batchPostingLimit = InfluxDBSink.DefaultBatchPostingLimit,
             TimeSpan? period = null)
         {
-            if (loggerConfiguration == null) throw new ArgumentNullException("loggerConfiguration");
-            if (string.IsNullOrEmpty(address)) throw new ArgumentNullException("address");
+            if (loggerConfiguration == null) throw new ArgumentNullException(nameof(loggerConfiguration));
+            if (string.IsNullOrEmpty(address)) throw new ArgumentNullException(nameof(address));
             if (port <= 0) throw new ArgumentException("port");
             if (string.IsNullOrEmpty(dbName)) throw new ArgumentException("dbName");
 
@@ -52,7 +50,7 @@ namespace Serilog
                 Password = password
             };
 
-            return InfluxDB(loggerConfiguration, source,connectionInfo, restrictedToMinimumLevel, batchPostingLimit, period);
+            return InfluxDB(loggerConfiguration, source, connectionInfo, restrictedToMinimumLevel, batchPostingLimit, period);
         }
 
         /// <summary>
@@ -116,7 +114,7 @@ namespace Serilog
             int batchPostingLimit = InfluxDBSink.DefaultBatchPostingLimit,
             TimeSpan? period = null)
         {
-            if (connectionInfo == null) throw new ArgumentNullException("connectionInfo");
+            if (connectionInfo == null) throw new ArgumentNullException(nameof(connectionInfo));
 
             var defaultedPeriod = period ?? InfluxDBSink.DefaultPeriod;
 
