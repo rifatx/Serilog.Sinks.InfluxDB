@@ -60,27 +60,11 @@ namespace Serilog.Sinks.InfluxDB
         public InfluxDBSink(InfluxDBConnectionInfo connectionInfo, string source, int batchSizeLimit, TimeSpan period)
             : base(batchSizeLimit, period)
         {
-            if (connectionInfo == null)
-            {
-                throw new ArgumentNullException(nameof(connectionInfo));
-            }
-
+            _connectionInfo = connectionInfo ?? throw new ArgumentNullException(nameof(connectionInfo));
             _source = source;
-            _connectionInfo = connectionInfo;
             _influxDbClient = CreateInfluxDbClient();
 
             CreateDatabase();
-        }
-
-        /// <summary>
-        /// Free resources held by the sink.
-        /// </summary>
-        /// <param name="disposing">If true, called because the object is being disposed; if false,
-        /// the object is being disposed from the finalizer.</param>
-        protected override void Dispose(bool disposing)
-        {
-            // First flush the buffer
-            base.Dispose(disposing);
         }
 
         /// <summary>
@@ -91,18 +75,19 @@ namespace Serilog.Sinks.InfluxDB
         /// not both.</remarks>
         protected override async Task EmitBatchAsync(IEnumerable<LogEvent> events)
         {
-            if (events == null)
-                throw new ArgumentNullException(nameof(events));
+            if (events == null) throw new ArgumentNullException(nameof(events));
 
             var payload = new StringWriter();
-            List<Point> points = new List<Point>(events.Count());
+            var logEvents = events as LogEvent[] ?? events.ToArray();
+            var points = new List<Point>(logEvents.Length);
 
-            foreach (var logEvent in events)
+            foreach (var logEvent in logEvents)
             {
-                var p = new Point();
-
-                p.Name = _source;
-                p.Fields = logEvent.Properties.ToDictionary(k => k.Key, v => (object)v.Value);
+                var p = new Point
+                {
+                    Name = _source,
+                    Fields = logEvent.Properties.ToDictionary(k => k.Key, v => (object)v.Value)
+                };
 
                 if (logEvent.Exception != null)
                 {
@@ -133,7 +118,7 @@ namespace Serilog.Sinks.InfluxDB
         private InfluxDbClient CreateInfluxDbClient()
         {
             return new InfluxDbClient(
-                string.Format("{0}:{1}", _connectionInfo.Address, _connectionInfo.Port),
+                $"{_connectionInfo.Address}:{_connectionInfo.Port}",
                 _connectionInfo.Username,
                 _connectionInfo.Password,
                 InfluxDbVersion.Latest);
@@ -145,7 +130,7 @@ namespace Serilog.Sinks.InfluxDB
         private void CreateDatabase()
         {
             var dbList = _influxDbClient.Database.GetDatabasesAsync().Result;
-            if (!dbList.Any(db => db.Name == _connectionInfo.DbName))
+            if (dbList.All(db => db.Name != _connectionInfo.DbName))
             {
                 var _ = _influxDbClient.Database.CreateDatabaseAsync(_connectionInfo.DbName).Result;
             }
