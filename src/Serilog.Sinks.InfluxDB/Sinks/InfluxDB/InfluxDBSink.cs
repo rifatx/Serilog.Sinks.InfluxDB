@@ -19,7 +19,6 @@ using Serilog.Events;
 using Serilog.Sinks.PeriodicBatching;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -79,36 +78,24 @@ namespace Serilog.Sinks.InfluxDB
         {
             if (events == null) throw new ArgumentNullException(nameof(events));
 
-            var payload = new StringWriter();
-            var logEvents = events as LogEvent[] ?? events.ToArray();
-            var points = new List<Point>(logEvents.Length);
+            var logEvents = events as List<LogEvent> ?? events.ToList();
+            var points = new List<Point>(logEvents.Count);
 
             foreach (var logEvent in logEvents)
             {
                 var p = new Point
                 {
                     Name = _source,
-                    Fields = logEvent.Properties.ToDictionary(k => k.Key, v => (object)v.Value)
+                    Fields = logEvent.Properties.ToDictionary(k => k.Key, v => (object)v.Value),
+                    Timestamp = logEvent.Timestamp.UtcDateTime
                 };
+                points.Add(p);
 
-                if (logEvent.Exception != null)
-                {
-                    p.Tags.Add("exception", logEvent.Exception.ToString());
-                }
+                if (logEvent.Exception != null) p.Tags.Add("exception", logEvent.Exception.ToString());
+                if (logEvent.MessageTemplate != null) p.Tags.Add("messageTemplate", logEvent.MessageTemplate.Text);
 
                 p.Tags.Add("level", logEvent.Level.ToString());
-
-                if (logEvent.MessageTemplate != null)
-                {
-                    p.Tags.Add("messageTemplate", logEvent.MessageTemplate.Text);
-                }
-
-                p.Timestamp = logEvent.Timestamp.UtcDateTime;
-
-                points.Add(p);
             }
-
-            Console.WriteLine(payload.ToString());
 
             await _influxDbClient.Client.WriteAsync(points, _connectionInfo.DbName);
         }
