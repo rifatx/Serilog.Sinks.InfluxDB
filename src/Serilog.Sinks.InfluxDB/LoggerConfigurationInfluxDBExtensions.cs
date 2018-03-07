@@ -34,7 +34,8 @@ namespace Serilog
             string password,
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             int batchPostingLimit = InfluxDBSink.DefaultBatchPostingLimit,
-            TimeSpan? period = null)
+            TimeSpan? period = null,
+            IFormatProvider formatProvider = null)
         {
             if (loggerConfiguration == null) throw new ArgumentNullException(nameof(loggerConfiguration));
             if (string.IsNullOrEmpty(address)) throw new ArgumentNullException(nameof(address));
@@ -50,7 +51,7 @@ namespace Serilog
                 Password = password
             };
 
-            return InfluxDB(loggerConfiguration, source, connectionInfo, restrictedToMinimumLevel, batchPostingLimit, period);
+            return InfluxDB(loggerConfiguration, source, connectionInfo, restrictedToMinimumLevel, batchPostingLimit, period, formatProvider);
         }
 
         /// <summary>
@@ -63,7 +64,8 @@ namespace Serilog
             string dbName,
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             int batchPostingLimit = InfluxDBSink.DefaultBatchPostingLimit,
-            TimeSpan? period = null)
+            TimeSpan? period = null,
+            IFormatProvider formatProvider = null)
         {
             var connectionInfo = new InfluxDBConnectionInfo
             {
@@ -74,7 +76,7 @@ namespace Serilog
                 Password = string.Empty
             };
 
-            return InfluxDB(loggerConfiguration, source, connectionInfo, restrictedToMinimumLevel, batchPostingLimit, period);
+            return InfluxDB(loggerConfiguration, source, connectionInfo, restrictedToMinimumLevel, batchPostingLimit, period, formatProvider);
         }
 
         /// <summary>
@@ -89,7 +91,8 @@ namespace Serilog
             string password,
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             int batchPostingLimit = InfluxDBSink.DefaultBatchPostingLimit,
-            TimeSpan? period = null)
+            TimeSpan? period = null,
+            IFormatProvider formatProvider = null)
         {
             var connectionInfo = new InfluxDBConnectionInfo
             {
@@ -100,7 +103,7 @@ namespace Serilog
                 Password = password
             };
 
-            return InfluxDB(loggerConfiguration, source, connectionInfo, restrictedToMinimumLevel, batchPostingLimit, period);
+            return InfluxDB(loggerConfiguration, source, connectionInfo, restrictedToMinimumLevel, batchPostingLimit, period, formatProvider);
         }
 
         /// <summary>
@@ -112,15 +115,14 @@ namespace Serilog
             InfluxDBConnectionInfo connectionInfo,
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             int batchPostingLimit = InfluxDBSink.DefaultBatchPostingLimit,
-            TimeSpan? period = null)
+            TimeSpan? period = null,
+            IFormatProvider formatProvider = null)
         {
             if (connectionInfo == null) throw new ArgumentNullException(nameof(connectionInfo));
 
             var defaultedPeriod = period ?? InfluxDBSink.DefaultPeriod;
 
-            return loggerConfiguration.Sink(
-                new InfluxDBSink(connectionInfo, source, batchPostingLimit, defaultedPeriod),
-                restrictedToMinimumLevel);
+            return loggerConfiguration.Sink(new InfluxDBSink(connectionInfo, source, batchPostingLimit, defaultedPeriod, formatProvider), restrictedToMinimumLevel);
         }
     }
 }

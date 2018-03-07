@@ -28,6 +28,8 @@ namespace Serilog.Sinks.InfluxDB
     {
         private readonly string _source;
 
+        private readonly IFormatProvider _formatProvider;
+
         /// <summary>
         /// Connection info used to connect to InfluxDB instance.
         /// </summary>
@@ -49,6 +51,7 @@ namespace Serilog.Sinks.InfluxDB
         /// </summary>
         public static readonly TimeSpan DefaultPeriod = TimeSpan.FromSeconds(30);
 
+
         /// <inheritdoc />
         /// <summary>
         /// Construct a sink inserting into InfluxDB with the specified details.
@@ -57,12 +60,15 @@ namespace Serilog.Sinks.InfluxDB
         /// <param name="source">Measurement name in the InfluxDB database.</param>
         /// <param name="batchSizeLimit">The maximum number of events to post in a single batch.</param>
         /// <param name="period">The time to wait between checking for event batches.</param>
-        public InfluxDBSink(InfluxDBConnectionInfo connectionInfo, string source, int batchSizeLimit, TimeSpan period)
+        /// <param name="formatProvider"></param>
+        public InfluxDBSink(InfluxDBConnectionInfo connectionInfo, string source, int batchSizeLimit, TimeSpan period,
+            IFormatProvider formatProvider)
             : base(batchSizeLimit, period)
         {
             _connectionInfo = connectionInfo ?? throw new ArgumentNullException(nameof(connectionInfo));
             _source = source;
             _influxDbClient = CreateInfluxDbClient();
+            _formatProvider = formatProvider;
 
             CreateDatabase();
         }
@@ -91,10 +97,13 @@ namespace Serilog.Sinks.InfluxDB
                 };
                 points.Add(p);
 
-                if (logEvent.Exception != null) p.Tags.Add("exception", logEvent.Exception.ToString());
+                // Add tags
+                if (logEvent.Exception != null) p.Tags.Add("exceptionType", logEvent.Exception.GetType().Name);
                 if (logEvent.MessageTemplate != null) p.Tags.Add("messageTemplate", logEvent.MessageTemplate.Text);
-
                 p.Tags.Add("level", logEvent.Level.ToString());
+
+                // Add rendered message
+                p.Fields["message"] = logEvent.RenderMessage(_formatProvider);
             }
 
             await _influxDbClient.Client.WriteAsync(points, _connectionInfo.DbName);
