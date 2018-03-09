@@ -95,15 +95,17 @@ namespace Serilog.Sinks.InfluxDB
                     Fields = logEvent.Properties.ToDictionary(k => k.Key, v => (object)v.Value),
                     Timestamp = logEvent.Timestamp.UtcDateTime
                 };
-                points.Add(p);
 
                 // Add tags
                 if (logEvent.Exception != null) p.Tags.Add("exceptionType", logEvent.Exception.GetType().Name);
                 if (logEvent.MessageTemplate != null) p.Tags.Add("messageTemplate", logEvent.MessageTemplate.Text);
+
                 p.Tags.Add("level", logEvent.Level.ToString());
 
                 // Add rendered message
                 p.Fields["message"] = logEvent.RenderMessage(_formatProvider);
+
+                points.Add(p);
             }
 
             await _influxDbClient.Client.WriteAsync(points, _connectionInfo.DbName);
