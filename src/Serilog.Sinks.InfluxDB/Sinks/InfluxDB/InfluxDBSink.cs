@@ -19,25 +19,26 @@ using Serilog.Events;
 using Serilog.Sinks.PeriodicBatching;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Serilog.Sinks.InfluxDB
 {
-    class InfluxDBSink : PeriodicBatchingSink //InfluxDBSink
+    internal class InfluxDBSink : PeriodicBatchingSink //InfluxDBSink
     {
-        readonly string _source;
+        private readonly string _source;
+
+        private readonly IFormatProvider _formatProvider;
 
         /// <summary>
         /// Connection info used to connect to InfluxDB instance.
         /// </summary>
-        readonly InfluxDBConnectionInfo _connectionInfo;
+        private readonly InfluxDBConnectionInfo _connectionInfo;
 
         /// <summary>
         /// Client object used to connect to InfluxDB instance.
         /// </summary>
-        readonly InfluxDbClient _influxDbClient;
+        private readonly InfluxDbClient _influxDbClient;
 
         /// <summary>
         /// A reasonable default for the number of events posted in
@@ -50,6 +51,8 @@ namespace Serilog.Sinks.InfluxDB
         /// </summary>
         public static readonly TimeSpan DefaultPeriod = TimeSpan.FromSeconds(30);
 
+
+        /// <inheritdoc />
         /// <summary>
         /// Construct a sink inserting into InfluxDB with the specified details.
         /// </summary>
@@ -57,71 +60,51 @@ namespace Serilog.Sinks.InfluxDB
         /// <param name="source">Measurement name in the InfluxDB database.</param>
         /// <param name="batchSizeLimit">The maximum number of events to post in a single batch.</param>
         /// <param name="period">The time to wait between checking for event batches.</param>
-        public InfluxDBSink(InfluxDBConnectionInfo connectionInfo, string source, int batchSizeLimit, TimeSpan period)
+        /// <param name="formatProvider"></param>
+        public InfluxDBSink(InfluxDBConnectionInfo connectionInfo, string source, int batchSizeLimit, TimeSpan period,
+            IFormatProvider formatProvider)
             : base(batchSizeLimit, period)
         {
-            if (connectionInfo == null)
-            {
-                throw new ArgumentNullException(nameof(connectionInfo));
-            }
-
+            _connectionInfo = connectionInfo ?? throw new ArgumentNullException(nameof(connectionInfo));
             _source = source;
-            _connectionInfo = connectionInfo;
             _influxDbClient = CreateInfluxDbClient();
+            _formatProvider = formatProvider;
 
             CreateDatabase();
         }
 
-        /// <summary>
-        /// Free resources held by the sink.
-        /// </summary>
-        /// <param name="disposing">If true, called because the object is being disposed; if false,
-        /// the object is being disposed from the finalizer.</param>
-        protected override void Dispose(bool disposing)
-        {
-            // First flush the buffer
-            base.Dispose(disposing);
-        }
-
+        /// <inheritdoc />
         /// <summary>
         /// Emit a batch of log events, running asynchronously.
         /// </summary>
         /// <param name="events">The events to emit.</param>
-        /// <remarks>Override either <see cref="PeriodicBatchingSink.EmitBatch"/> or <see cref="PeriodicBatchingSink.EmitBatchAsync"/>,
+        /// <remarks>Override either <see cref="M:Serilog.Sinks.PeriodicBatching.PeriodicBatchingSink.EmitBatch(System.Collections.Generic.IEnumerable{Serilog.Events.LogEvent})" /> or <see cref="M:Serilog.Sinks.PeriodicBatching.PeriodicBatchingSink.EmitBatchAsync(System.Collections.Generic.IEnumerable{Serilog.Events.LogEvent})" />,
         /// not both.</remarks>
         protected override async Task EmitBatchAsync(IEnumerable<LogEvent> events)
         {
-            if (events == null)
-                throw new ArgumentNullException(nameof(events));
+            if (events == null) throw new ArgumentNullException(nameof(events));
 
-            var payload = new StringWriter();
-            List<Point> points = new List<Point>(events.Count());
+            var logEvents = events as List<LogEvent> ?? events.ToList();
+            var points = new List<Point>(logEvents.Count);
 
-            foreach (var logEvent in events)
+            foreach (var logEvent in logEvents)
             {
-                var p = new Point();
-
-                p.Name = _source;
-                p.Fields = logEvent.Properties.ToDictionary(k => k.Key, v => (object)v.Value);
-
-                if (logEvent.Exception != null)
+                var p = new Point
                 {
-                    p.Tags.Add("exception", logEvent.Exception.ToString());
-                }
+                    Name = _source,
+                    Fields = logEvent.Properties.ToDictionary(k => k.Key, v => (object)v.Value),
+                    Timestamp = logEvent.Timestamp.UtcDateTime
+                };
+                points.Add(p);
 
+                // Add tags
+                if (logEvent.Exception != null) p.Tags.Add("exceptionType", logEvent.Exception.GetType().Name);
+                if (logEvent.MessageTemplate != null) p.Tags.Add("messageTemplate", logEvent.MessageTemplate.Text);
                 p.Tags.Add("level", logEvent.Level.ToString());
 
-                if (logEvent.MessageTemplate != null)
-                {
-                    p.Tags.Add("messageTemplate", logEvent.MessageTemplate.Text);
-                }
-
-                p.Timestamp = logEvent.Timestamp.UtcDateTime;
-
-                points.Add(p);
+                // Add rendered message
+                p.Fields["message"] = logEvent.RenderMessage(_formatProvider);
             }
-
-            Console.WriteLine(payload.ToString());
 
             await _influxDbClient.Client.WriteAsync(points, _connectionInfo.DbName);
         }
@@ -133,7 +116,7 @@ namespace Serilog.Sinks.InfluxDB
         private InfluxDbClient CreateInfluxDbClient()
         {
             return new InfluxDbClient(
-                string.Format("{0}:{1}", _connectionInfo.Address, _connectionInfo.Port),
+                $"{_connectionInfo.Address}:{_connectionInfo.Port}",
                 _connectionInfo.Username,
                 _connectionInfo.Password,
                 InfluxDbVersion.Latest);
@@ -145,7 +128,7 @@ namespace Serilog.Sinks.InfluxDB
         private void CreateDatabase()
         {
             var dbList = _influxDbClient.Database.GetDatabasesAsync().Result;
-            if (!dbList.Any(db => db.Name == _connectionInfo.DbName))
+            if (dbList.All(db => db.Name != _connectionInfo.DbName))
             {
                 var _ = _influxDbClient.Database.CreateDatabaseAsync(_connectionInfo.DbName).Result;
             }

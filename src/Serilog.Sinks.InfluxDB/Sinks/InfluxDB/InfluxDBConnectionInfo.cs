@@ -13,7 +13,6 @@
 // limitations under the License.
 
 using System.ComponentModel;
-using System.Net;
 
 namespace Serilog.Sinks.InfluxDB
 {
